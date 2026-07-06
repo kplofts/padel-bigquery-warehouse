@@ -9,8 +9,10 @@ cd "$(dirname "$0")/.."
 : "${BQ_LOCATION:=australia-southeast1}"
 
 echo "Project=$BQ_PROJECT  Location=$BQ_LOCATION"
-bq query --project_id="$BQ_PROJECT" --location="$BQ_LOCATION" --use_legacy_sql=false -- \
-  "$(cat warehouse/ddl/00_datasets.sql)"
-bq query --project_id="$BQ_PROJECT" --location="$BQ_LOCATION" --use_legacy_sql=false -- \
-  "$(cat warehouse/ddl/01_raw_tables.sql)"
+# NOTE: leading space in the query string keeps bq's flag parser from treating a
+# leading SQL "--" comment as a command-line flag.
+bq query --project_id="$BQ_PROJECT" --location="$BQ_LOCATION" --use_legacy_sql=false \
+  " $(cat warehouse/ddl/00_datasets.sql)"
+bq query --project_id="$BQ_PROJECT" --location="$BQ_LOCATION" --use_legacy_sql=false \
+  " $(cat warehouse/ddl/01_raw_tables.sql)"
 echo "Datasets + raw tables created."
