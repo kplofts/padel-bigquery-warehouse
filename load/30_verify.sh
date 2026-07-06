@@ -6,7 +6,7 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 : "${BQ_PROJECT:?set BQ_PROJECT}"
 : "${BQ_LOCATION:=australia-southeast1}"
-Q() { bq query --project_id="$BQ_PROJECT" --location="$BQ_LOCATION" --use_legacy_sql=false --format=pretty "$1"; }
+Q() { bq query --project_id="$BQ_PROJECT" --location="$BQ_LOCATION" --use_legacy_sql=false --format=pretty -- "$1"; }
 
 echo "############ BigQuery: total net revenue ############"
 Q "SELECT ROUND(SUM(net_revenue_aud),2) AS total_net_revenue_aud,

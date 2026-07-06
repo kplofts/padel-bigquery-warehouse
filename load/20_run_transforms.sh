@@ -12,7 +12,7 @@ for f in \
   warehouse/marts/40_marts.sql
 do
   echo ">> $f"
-  bq query --project_id="$BQ_PROJECT" --location="$BQ_LOCATION" --use_legacy_sql=false \
+  bq query --project_id="$BQ_PROJECT" --location="$BQ_LOCATION" --use_legacy_sql=false -- \
     "$(cat "$f")"
 done
 echo "Transforms complete. Try:  bq query --use_legacy_sql=false 'SELECT * FROM padel_mart.v_monthly_revenue ORDER BY year_month LIMIT 20'"
