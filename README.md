@@ -88,18 +88,38 @@ Average tournament fill rate: 73.8%
 Refund rate by provider:  stripe 7.0%   paypal 3.2%
 ```
 
-## Deploy to BigQuery
+## Publish to BigQuery Sandbox (free, no billing, no local install)
 
-Needs the `gcloud` + `bq` CLI authenticated to a project with BigQuery enabled.
+The [BigQuery Sandbox](https://cloud.google.com/bigquery/docs/sandbox) gives you real
+BigQuery with **no credit card and no charges** (10 GB storage + 1 TB queries/month free;
+tables auto-expire after 60 days). Run the whole pipeline from **Google Cloud Shell**,
+which ships with `bq`, `git`, `node`, and `make` already authenticated as you.
+
+1. Open the [BigQuery console](https://console.cloud.google.com/bigquery) and, if
+   prompted, accept the free **Sandbox** (creates a project id like `my-first-project-123456`).
+2. Open [Cloud Shell](https://shell.cloud.google.com) (terminal icon, top-right).
+3. Clone and deploy — one block:
+
+```bash
+git clone https://github.com/kplofts/padel-bigquery-warehouse.git
+cd padel-bigquery-warehouse
+export BQ_PROJECT=$(gcloud config get-value project)   # your sandbox project
+export BQ_LOCATION=US                                  # or australia-southeast1
+make deploy                                            # generate -> load -> transform -> verify
+```
+
+`make deploy` finishes by printing the marts next to the local reconciliation oracle,
+so you can confirm the warehouse numbers match. Costs incurred: **$0** (batch loads are
+free; the dataset is under 1 MB, far inside the free query/storage tiers).
+
+## Deploy to a normal (billed) BigQuery project
+
+Same commands; just point at a project with BigQuery enabled and the `bq` CLI authenticated:
 
 ```bash
 export BQ_PROJECT=your-gcp-project-id
 export BQ_LOCATION=australia-southeast1
-
-bash load/00_setup.sh          # create datasets + raw tables
-bash load/10_load_raw.sh       # load ./data into raw
-bash load/20_run_transforms.sh # staging -> dims -> facts -> marts
-# or: make deploy
+make deploy
 ```
 
 Then, for example:

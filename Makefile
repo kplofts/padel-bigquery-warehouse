@@ -1,6 +1,6 @@
 # Convenience targets. Local targets need only Node; deploy targets need bq CLI +
 # BQ_PROJECT / BQ_LOCATION env vars.
-.PHONY: data validate reconcile local setup load transforms deploy clean
+.PHONY: data validate reconcile local setup load transforms verify deploy clean
 
 data:                 ## generate synthetic source NDJSON into ./data
 	node tools/generate.mjs
@@ -22,7 +22,10 @@ load:                 ## load ./data into raw tables
 transforms:           ## build staging -> dims -> facts -> marts
 	bash load/20_run_transforms.sh
 
-deploy: setup load transforms  ## full BigQuery build
+verify:               ## run marts in BigQuery + reconcile against local oracle
+	bash load/30_verify.sh
+
+deploy: data setup load transforms verify  ## full build: generate -> load -> transform -> verify
 
 clean:
 	rm -f data/*.ndjson
