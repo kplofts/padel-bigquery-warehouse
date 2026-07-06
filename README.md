@@ -17,33 +17,48 @@ cloud account is needed to try it; point the loader at a real export to run it f
 
 ## Architecture
 
-```
-  SOURCE (Postgres OLTP)          BigQuery
-  ────────────────────            ─────────────────────────────────────────────
-  clubs                           padel_raw     1:1 typed landing tables
-  players            ─ export ─▶  (raw)              │
-  tournaments          NDJSON     padel_stg     typed · cleaned · deduped
-  registrations                   (staging)          │
-  matches                         padel_core    star schema: dims + facts
-  payments                        (core)             │   ├─ dim_date
-                                                     │   ├─ dim_player
-                                                     │   ├─ dim_club
-                                                     │   ├─ dim_tournament
-                                                     │   ├─ fct_registration      (partitioned/clustered)
-                                                     │   └─ fct_match_participation(partitioned/clustered)
-                                  padel_mart    business views
-                                  (mart)             ├─ v_monthly_revenue
-                                                     ├─ v_tournament_fill
-                                                     ├─ v_player_leaderboard
-                                                     ├─ v_player_acquisition
-                                                     └─ v_refund_rate
-```
+Data flows through four BigQuery layers, each `CREATE OR REPLACE` built purely from
+the one before it — so the whole pipeline is **idempotent and re-runnable**.
 
-Layering keeps transforms **idempotent and re-runnable**: raw is a straight copy of
-source, and every downstream object is `CREATE OR REPLACE` built purely from the
-layer beneath it.
+```mermaid
+flowchart LR
+  subgraph SRC["Source OLTP (Postgres)"]
+    direction TB
+    s["clubs · players · tournaments<br/>registrations · matches · payments"]
+  end
+  subgraph RAW["padel_raw"]
+    r["6 typed landing tables<br/><i>1:1 copy of source</i>"]
+  end
+  subgraph STG["padel_stg"]
+    g["typed · cleansed · deduped"]
+  end
+  subgraph CORE["padel_core — star schema"]
+    direction TB
+    dims["dim_date · dim_player<br/>dim_club · dim_tournament"]
+    facts["fct_registration<br/>fct_match_participation<br/><i>partitioned + clustered</i>"]
+  end
+  subgraph MART["padel_mart (views)"]
+    m["revenue · fill rate · leaderboard<br/>acquisition · refunds"]
+  end
+  SRC -- "NDJSON · bq load" --> RAW --> STG --> CORE --> MART
+```
 
 ## Star schema
+
+Two fact grains share conformed dimensions (classic star). `fct_match_participation`
+is built by unpivoting the four player slots on each match, so player-level win rates
+are a plain `GROUP BY` rather than four-way OR logic.
+
+```mermaid
+erDiagram
+  dim_date       ||--o{ fct_registration        : registered_date
+  dim_player     ||--o{ fct_registration        : player_key
+  dim_tournament ||--o{ fct_registration        : tournament_key
+  dim_club       ||--o{ fct_registration        : club_key
+  dim_date       ||--o{ fct_match_participation : match_date
+  dim_player     ||--o{ fct_match_participation : player_key
+  dim_tournament ||--o{ fct_match_participation : tournament_key
+```
 
 | Table | Grain | Key measures / attributes |
 |-------|-------|---------------------------|
@@ -53,9 +68,6 @@ layer beneath it.
 | `dim_tournament` | tournament | category, surface, `entry_fee_aud`, club attributes |
 | `dim_club` | club | city, country |
 | `dim_date` | calendar day | year / quarter / month / weekend flags |
-
-`fct_match_participation` is built by unpivoting the four player slots on each match,
-so player-level win rates are a plain `GROUP BY` rather than four-way OR logic.
 
 ## What it demonstrates
 
