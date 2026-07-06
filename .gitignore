@@ -1,0 +1,10 @@
+# Generated source data — reproducible via `node tools/generate.mjs`
+/data/*.ndjson
+
+# Local env / creds — never commit
+.env
+*.json.key
+service-account*.json
+
+node_modules/
+.DS_Store

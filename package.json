@@ -1,0 +1,13 @@
+{
+  "name": "padel-bigquery-warehouse",
+  "version": "1.0.0",
+  "description": "End-to-end BigQuery analytics warehouse: relational source -> star schema -> marts, with data-quality tests.",
+  "type": "module",
+  "scripts": {
+    "generate": "node tools/generate.mjs",
+    "validate": "node tools/validate.mjs",
+    "reconcile": "node tools/expected_metrics.mjs",
+    "local": "node tools/generate.mjs && node tools/validate.mjs && node tools/expected_metrics.mjs"
+  },
+  "license": "MIT"
+}
